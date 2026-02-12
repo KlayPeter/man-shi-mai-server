@@ -15,6 +15,8 @@ import { APP_FILTER } from '@nestjs/core';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 import { configValidationSchema } from './config/config.schema';
 import { CommonModule } from './common/common.module';
+import { WechatController } from './wechat/wechat.controller';
+import { WechatModule } from './wechat/wechat.module';
 
 @Module({
   imports: [
@@ -48,8 +50,9 @@ import { CommonModule } from './common/common.module';
     InterviewModule,
     DatabaseModule,
     CommonModule,
+    WechatModule,
   ],
-  controllers: [AppController],
+  controllers: [AppController, WechatController],
   providers: [
     AppService,
     LoggerMiddleware,
