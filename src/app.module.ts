@@ -17,6 +17,8 @@ import { configValidationSchema } from './config/config.schema';
 import { CommonModule } from './common/common.module';
 import { WechatController } from './wechat/wechat.controller';
 import { WechatModule } from './wechat/wechat.module';
+import { PassportModule } from '@nestjs/passport';
+import { getTokenExpirationSeconds } from './common/utils/jwt.util';
 
 @Module({
   imports: [
@@ -30,21 +32,24 @@ import { WechatModule } from './wechat/wechat.module';
         abortEarly: true, // 在第一个错误时中止验证
       },
     }), // 全局模块，可以任何地方使用
-    MongooseModule.forRootAsync({
-      imports: [
-        ConfigModule,
-        UserModule,
-        JwtModule.register({
-          secret: process.env.JWT_SECRET || 'mmx-secret-key',
-          signOptions: { expiresIn: process.env.JWT_EXPIRES_IN || '24h' },
-        }),
-      ],
-      useFactory: async (configService: ConfigService) => ({
-        uri:
-          configService.get<string>('MONGODB_URI') ||
-          'mongodb://localhost:27017/mainshimai',
-      }),
+
+    MongooseModule.forRoot(
+      process.env.MONGODB_URI || 'mongodb://localhost:27017/manshimai',
+    ),
+    PassportModule,
+    JwtModule.registerAsync({
+      imports: [ConfigModule],
+      useFactory:async (configService: ConfigService) => {
+        const expirationSeconds = getTokenExpirationSeconds();
+        return {
+          secret: configService.get<string>('JWT_SECRET') || 'wwzhidao-secret',
+          signOptions: {
+            expiresIn: expirationSeconds,
+          },
+        };
+      },
       inject: [ConfigService],
+      global: true,
     }),
     UserModule,
     InterviewModule,
