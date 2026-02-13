@@ -1,18 +1,16 @@
 import { Module } from '@nestjs/common';
 import { InterviewController } from './interview.controller';
 import { InterviewService } from './services/interview.service';
-import { InterviewAIService } from './services/interview-ai.service';
-import { DocumentParserService } from './services/document-parser.service';
 import { AIModule } from 'src/ai/ai.module';
-import { ConfigModule } from '@nestjs/config';
+import { ResumeAnalysisService } from './services/resume-analysis.service';
+import { ConversationContinuationService } from './services/conversation-continuation.service';
 
 @Module({
   imports: [
     AIModule,
-    ConfigModule
   ],
   controllers: [InterviewController],
-  providers: [InterviewService, InterviewAIService, DocumentParserService],
-  exports: [InterviewService, InterviewAIService, DocumentParserService],
+  providers: [InterviewService, ResumeAnalysisService, ConversationContinuationService],
+  exports: [InterviewService],
 })
 export class InterviewModule {}
