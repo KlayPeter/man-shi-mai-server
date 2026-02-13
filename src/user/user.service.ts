@@ -22,6 +22,7 @@ export class UserService {
     private userModel: Model<UserDocument>,
     @InjectModel(ConsumptionRecord.name)
     private consumptionRecordModel: Model<ConsumptionRecordDocument>,
+    @InjectModel(UserConsumption.name)
     private consumptionModel: Model<UserConsumptionDocument>,
     private jwtService: JwtService,
   ) { }

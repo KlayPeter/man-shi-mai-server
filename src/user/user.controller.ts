@@ -57,13 +57,13 @@ export class UserController {
   // /**
   //  * 获取用户消费记录（包括简历押题、专项面试、综合面试）
   //  */
-  // @Get('consumption-records')
-  // @UseGuards(JwtAuthGuard)
-  // @ApiOperation({
-  //   summary: '获取用户消费记录',
-  //   description:
-  //     '获取用户所有的功能消费记录，包括简历押题、专项面试、综合面试等',
-  // })
+  @Get('consumption-records')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({
+    summary: '获取用户消费记录',
+    description:
+      '获取用户所有的功能消费记录，包括简历押题、专项面试、综合面试等',
+  })
 
   /*
   * 获取用户消费记录（包括简历押题、专项面试、综合面试）
