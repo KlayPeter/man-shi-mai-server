@@ -1,6 +1,7 @@
+// src/interview/services/interview.service.ts
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { SessionManager } from 'src/ai/services/session.manager';
+import { SessionManager } from '../../ai/services/session.manager';
 import { ResumeAnalysisService } from './resume-analysis.service';
 import { ConversationContinuationService } from './conversation-continuation.service';
 import { RESUME_ANALYSIS_SYSTEM_MESSAGE } from '../prompts/resume-analysis.prompts';
@@ -20,6 +21,7 @@ import {
   ResumeQuizResult,
   ResumeQuizResultDocument,
 } from '../schemas/interview-quiz-result.schema';
+
 /**
  * 进度事件
  */
@@ -44,20 +46,20 @@ export enum ConsumptionType {
   AI_INTERVIEW = 'ai_interview', // AI模拟面试（如果使用次数计费）
 }
 
-
 /**
  * 面试服务
- * 
- * 这个服务只关心业务逻辑和流程编排
+ *
+ * 这个服务只关心业务逻辑和流程编排：
  * 1. 创建会话
  * 2. 调用具体的分析服务（简历分析、对话继续等）
  * 3. 管理会话历史
- * 
- * 不关心具体的AI实现细节，那些交给专门的分析服务
-*/
+ *
+ * 不关心具体的 AI 实现细节，那些交给专门的分析服务。
+ */
 @Injectable()
 export class InterviewService {
   private readonly logger = new Logger(InterviewService.name);
+
   constructor(
     private configService: ConfigService,
     private sessionManager: SessionManager,
@@ -69,84 +71,103 @@ export class InterviewService {
     private resumeQuizResultModel: Model<ResumeQuizResultDocument>,
     @InjectModel(User.name)
     private userModel: Model<UserDocument>,
-    
-  ) { }
-  /**
-   * 分析简历(首轮，创建会话)
-   * 
-   * @param userId - 用户ID
-   * @param position - 职位
-   * @param resumeContent - 简历内容
-   * @param jobDescription - 岗位要求
-   * @returns - 分析结果和sessionId
-   * */
-  async analyzeResume(userId: string, position: string, resumeContent: string, jobDescription: string) {
-    try {
-      // 1. 创建新建会话
-      const systemMessage = RESUME_ANALYSIS_SYSTEM_MESSAGE(position);
-      const sessionId = await this.sessionManager.createSession(userId, position,systemMessage);
-      this.logger.log(`创建会话：${sessionId}`)
+  ) {}
 
-      // 2. 调用简历分析服务
-      const result = await this.resumeAnalysisService.analyze(resumeContent, jobDescription);
-      
-      // 3. 保存用户输入到会话历史
+  /**
+   * 分析简历（首轮，创建会话）
+   *
+   * @param userId 用户 ID
+   * @param position 职位名称
+   * @param resumeContent 简历内容
+   * @param jobDescription 岗位要求
+   * @returns 分析结果和 sessionId
+   */
+  async analyzeResume(
+    userId: string,
+    position: string,
+    resumeContent: string,
+    jobDescription: string,
+  ) {
+    try {
+      // 第一步：创建新会话
+      const systemMessage = RESUME_ANALYSIS_SYSTEM_MESSAGE(position);
+      const sessionId = this.sessionManager.createSession(
+        userId,
+        position,
+        systemMessage,
+      );
+
+      this.logger.log(`创建会话: ${sessionId}`);
+
+      // 第二步：调用专门的简历分析服务
+      const result = await this.resumeAnalysisService.analyze(
+        resumeContent,
+        jobDescription,
+      );
+
+      // 第三步：保存用户输入到会话历史
       this.sessionManager.addMessage(
         sessionId,
         'user',
-        `简历内容： ${resumeContent}`
-      )
+        `简历内容：${resumeContent}`,
+      );
 
-      // 4. 保存AI的回答到会话历史
+      // 第四步：保存 AI 的回答到会话历史
       this.sessionManager.addMessage(
         sessionId,
         'assistant',
-        JSON.stringify(result)
-      )
-      this.logger.log(`简历分析完成, sessionId: ${sessionId}`)
+        JSON.stringify(result),
+      );
+
+      this.logger.log(`简历分析完成，sessionId: ${sessionId}`);
+
       return {
         sessionId,
-        analysis: result
-      }
-    } catch (err) {
-      this.logger.error(`分析简历失败：${err}`);
-      throw err;
+        analysis: result,
+      };
+    } catch (error) {
+      this.logger.error(`分析简历失败: ${error}`);
+      throw error;
     }
   }
 
   /**
-   * 继续对话
-   * 
-   * @param sessionId - 会话ID
-   * @param userQuestion - 用户输入
-   * @returns - AI的回答
-   * */
-  async continueConversation(sessionId: string, userQuestion: string):Promise<string>{
+   * 继续对话（多轮，基于现有会话）
+   *
+   * @param sessionId 会话 ID
+   * @param userQuestion 用户问题
+   * @returns AI 的回答
+   */
+  async continueConversation(
+    sessionId: string,
+    userQuestion: string,
+  ): Promise<string> {
     try {
-      // 1. 添加用户问题到会话历史
-      this.sessionManager.addMessage(sessionId,'user',userQuestion)
-      // 2. 获取对话历史
-      const history = this.sessionManager.getRecentMessages(sessionId, 10)
+      // 第一步：添加用户问题到会话历史
+      this.sessionManager.addMessage(sessionId, 'user', userQuestion);
+
+      // 第二步：获取对话历史
+      const history = this.sessionManager.getRecentMessages(sessionId, 10);
+
       this.logger.log(
-        `继续对话，sessionId: ${sessionId}, 历史消息数： ${history.length}`
-      )
+        `继续对话，sessionId: ${sessionId}，历史消息数: ${history.length}`,
+      );
 
-      // 3. 调用专门的对话继续服务
-      const aiResponse = await this.conversationContinuationService.continue(history)
+      // 第三步：调用专门的对话继续服务
+      const aiResponse =
+        await this.conversationContinuationService.continue(history);
 
-      // 4. 保存AI的回答到会话历史
-      this.sessionManager.addMessage(sessionId, 'assistant', aiResponse)
-      
-      this.logger.log(`继续对话完成, sessionId: ${sessionId}`)
-      return aiResponse
- 
-    } catch (err) {
-      this.logger.error(`继续对话失败：${err}`);
-      throw err;
+      // 第四步：保存 AI 的回答到会话历史
+      this.sessionManager.addMessage(sessionId, 'assistant', aiResponse);
+
+      this.logger.log(`对话继续完成，sessionId: ${sessionId}`);
+
+      return aiResponse;
+    } catch (error) {
+      this.logger.error(`继续对话失败: ${error}`);
+      throw error;
     }
   }
-
-
 
   /**
    * 生成简历押题（带流式进度）
@@ -154,10 +175,13 @@ export class InterviewService {
    * @param dto 请求参数
    * @returns Subject 流式事件
    */
-  generateResumeQuizWithProgress(userId: string, dto: ResumeQuizDto): Subject<ProgressEvent> {
+  generateResumeQuizWithProgress(
+    userId: string,
+    dto: ResumeQuizDto,
+  ): Subject<ProgressEvent> {
     const subject = new Subject<ProgressEvent>();
 
-    // 异步执行，通过Subject发送进度
+    // 异步执行，通过 Subject 发送进度
     this.executeResumeQuiz(userId, dto, subject).catch((error) => {
       subject.error(error);
     });
@@ -173,14 +197,16 @@ export class InterviewService {
     dto: ResumeQuizDto,
     progressSubject?: Subject<ProgressEvent>,
   ): Promise<any> {
-    let consumptionRecord: any = null
-    const recordId = uuidv4()
-    const resultId = uuidv4()
+    let consumptionRecord: any = null;
+    const recordId = uuidv4();
+    const resultId = uuidv4();
+    console.log('recordId', recordId);
+
     // 处理错误
     try {
       // ========== 步骤 0: 幂等性检查 ==========
       // ⚠️ 这是最关键的一步：防止重复生成
-      if (dto.requestId) { 
+      if (dto.requestId) {
         // 在数据库中查询是否存在这个 requestId 的记录
         const existingRecord = await this.consumptionRecordModel.findOne({
           userId,
@@ -190,7 +216,7 @@ export class InterviewService {
           },
         });
 
-         if (existingRecord) {
+        if (existingRecord) {
           // 找到了相同 requestId 的记录！
 
           if (existingRecord.status === ConsumptionStatus.SUCCESS) {
@@ -229,18 +255,40 @@ export class InterviewService {
 
       // ========== 步骤 1: 检查并扣除次数（原子操作）==========
       // ⚠️ 注意：扣费后如果后续步骤失败，会在 catch 块中自动退款
-      // TODO：后续实现
-      this.logger.log(`✅ 用户扣费成功～～`);
+
+      const user = await this.userModel.findOneAndUpdate(
+        {
+          _id: userId,
+          resumeRemainingCount: { $gt: 0 }, // 条件：必须余额 > 0
+        },
+        {
+          $inc: { resumeRemainingCount: -1 }, // 原子操作：余额 - 1
+        },
+        { new: false }, // 返回更新前的文档，用于日志记录
+      );
+
+      // 检查扣费是否成功
+      if (!user) {
+        throw new BadRequestException('简历押题次数不足，请前往充值页面购买');
+      }
+
+      // 记录详细日志
+      this.logger.log(
+        `✅ 用户扣费成功: userId=${userId}, 扣费前=${user.resumeRemainingCount}, 扣费后=${user.resumeRemainingCount - 1}`,
+      );
 
       // ========== 步骤 2: 创建消费记录（pending）==========
-        consumptionRecord = await this.consumptionRecordModel.create({
-        recordId,
+
+      consumptionRecord = await this.consumptionRecordModel.create({
+        recordId, // 消费记录唯一ID
         user: new Types.ObjectId(userId),
         userId,
-        type: ConsumptionType.RESUME_QUIZ,
-        status: ConsumptionStatus.PENDING,
-        consumedCount: 1,
+        type: ConsumptionType.RESUME_QUIZ, // 消费类型
+        status: ConsumptionStatus.PENDING, // ⭐ 关键：标记为处理中
+        consumedCount: 1, // 消费次数
         description: `简历押题 - ${dto?.company} ${dto.positionName}`,
+
+        // 记录输入参数（用于调试和重现问题）
         inputData: {
           company: dto?.company || '',
           positionName: dto.positionName,
@@ -249,68 +297,140 @@ export class InterviewService {
           jd: dto.jd,
           resumeId: dto.resumeId,
         },
-        resultId,
+
+        resultId, // 结果ID（稍后会生成）
+
+        // 元数据（包含幂等性检查的 requestId）
         metadata: {
-          requestId: dto.requestId,
+          requestId: dto.requestId, // ← 用于幂等性检查
           promptVersion: dto.promptVersion,
         },
-        startedAt: new Date(),
+
+        startedAt: new Date(), // 记录开始时间
       });
 
+      this.logger.log(`✅ 消费记录创建成功: recordId=${recordId}`);
 
-      // 定义不同阶段的提示信息
-      const progressMessages = [
-        // 0-20%: 理解阶段
-        { progress: 0.05, message: '🤖 AI 正在深度理解您的简历内容...' },
-        { progress: 0.1, message: '📊 AI 正在分析您的技术栈和项目经验...' },
-        { progress: 0.15, message: '🔍 AI 正在识别您的核心竞争力...' },
-        { progress: 0.2, message: '📋 AI 正在对比岗位要求与您的背景...' },
+      // ========== 阶段 1: 准备阶段==========
+      this.emitProgress(
+        progressSubject,
+        0,
+        '📄 正在读取简历文档...',
+        'prepare',
+      );
+      // ========== 阶段 2: AI 生成阶段 - 分两步（10-90%）==========
+      // ===== 第一步：生成押题部分（问题 + 综合评估）10-50% =====
+      // ===== 第二步：生成匹配度分析部分，后续不在需要记录进度 =====
 
-        // 20-50%: 设计问题阶段
-        { progress: 0.25, message: '💡 AI 正在设计针对性的技术问题...' },
-        { progress: 0.3, message: '🎯 AI 正在挖掘您简历中的项目亮点...' },
-        { progress: 0.35, message: '🧠 AI 正在构思场景化的面试问题...' },
-        { progress: 0.4, message: '⚡ AI 正在设计不同难度的问题组合...' },
-        { progress: 0.45, message: '🔬 AI 正在分析您的技术深度和广度...' },
-        { progress: 0.5, message: '📝 AI 正在生成基于 STAR 法则的答案...' },
+      // 模拟一个假的 AI 响应数据，因为后面会用到
+      const aiResult: any = {};
+      // ========== 阶段 3: 保存结果阶段==========
+      const quizResult = await this.resumeQuizResultModel.create({
+        resultId,
+        user: new Types.ObjectId(userId),
+        userId,
+        resumeId: dto.resumeId,
+        company: dto?.company || '',
+        position: dto.positionName,
+        jobDescription: dto.jd,
+        questions: aiResult.questions,
+        totalQuestions: aiResult.questions.length,
+        summary: aiResult.summary,
+        // AI生成的分析报告数据
+        matchScore: aiResult.matchScore,
+        matchLevel: aiResult.matchLevel,
+        matchedSkills: aiResult.matchedSkills,
+        missingSkills: aiResult.missingSkills,
+        knowledgeGaps: aiResult.knowledgeGaps,
+        learningPriorities: aiResult.learningPriorities,
+        radarData: aiResult.radarData,
+        strengths: aiResult.strengths,
+        weaknesses: aiResult.weaknesses,
+        interviewTips: aiResult.interviewTips,
+        // 元数据
+        consumptionRecordId: recordId,
+        aiModel: 'deepseek-chat',
+        promptVersion: dto.promptVersion || 'v2',
+      });
 
-        // 50-70%: 优化阶段
-        { progress: 0.55, message: '✨ AI 正在优化问题的表达方式...' },
-        { progress: 0.6, message: '🎨 AI 正在为您准备回答要点和技巧...' },
-        { progress: 0.65, message: '💎 AI 正在提炼您的项目成果和亮点...' },
-        { progress: 0.7, message: '🔧 AI 正在调整问题难度分布...' },
+      this.logger.log(`✅ 结果保存成功: resultId=${resultId}`);
 
-        // 70-85%: 完善阶段
-        { progress: 0.75, message: '📚 AI 正在补充技术关键词和考察点...' },
-        { progress: 0.8, message: '🎓 AI 正在完善综合评估建议...' },
-        { progress: 0.85, message: '🚀 AI 正在做最后的质量检查...' },
-        { progress: 0.9, message: '✅ AI 即将完成问题生成...' },
-      ];
+      // 更新消费记录为成功
+      await this.consumptionRecordModel.findByIdAndUpdate(
+        consumptionRecord._id,
+        {
+          $set: {
+            status: ConsumptionStatus.SUCCESS,
+            outputData: {
+              resultId,
+              questionCount: aiResult.questions.length,
+            },
+            aiModel: 'deepseek-chat',
+            promptTokens: aiResult.usage?.promptTokens,
+            completionTokens: aiResult.usage?.completionTokens,
+            totalTokens: aiResult.usage?.totalTokens,
+            completedAt: new Date(),
+          },
+        },
+      );
 
-      // 模拟一个定时器：每间隔一秒，响应一次数据
-      let progress = 0;
-      let currentMessage = progressMessages[0];
-      const interval = setInterval(() => {
-        progress += 1;
-        currentMessage = progressMessages[progress];
-        // 发送进度事件
-        this.emitProgress(
-          progressSubject,
-          progress,
-          currentMessage.message,
-          'generating',
-        );
-        // 简单处理，到了 progressMessages 的 length 就结束了
-        if (progress === progressMessages.length - 1) {
-          clearInterval(interval);
-          this.emitProgress(progressSubject, 100, 'AI 已完成问题生成', 'done');
-          return {
-            questions: [],
-            analysis: [],
-          };
-        }
-      }, 1000);
+      this.logger.log(
+        `✅ 消费记录已更新为成功状态: recordId=${consumptionRecord.recordId}`,
+      );
     } catch (error) {
+      this.logger.error(
+        `❌ 简历押题生成失败: userId=${userId}, error=${error.message}`,
+        error.stack,
+      );
+
+      // ========== 失败回滚流程 ==========
+      try {
+        // 1. 返还次数（最重要！）
+        this.logger.log(`🔄 开始退还次数: userId=${userId}`);
+        await this.refundCount(userId, 'resume');
+        this.logger.log(`✅ 次数退还成功: userId=${userId}`);
+
+        // 2. 更新消费记录为失败
+        if (consumptionRecord) {
+          await this.consumptionRecordModel.findByIdAndUpdate(
+            consumptionRecord._id,
+            {
+              $set: {
+                status: ConsumptionStatus.FAILED, // 标记为失败
+                errorMessage: error.message, // 记录错误信息
+                errorStack:
+                  process.env.NODE_ENV === 'development'
+                    ? error.stack // 开发环境记录堆栈
+                    : undefined, // 生产环境不记录（隐私考虑）
+                failedAt: new Date(),
+                isRefunded: true, // ← 标记为已退款
+                refundedAt: new Date(),
+              },
+            },
+          );
+          this.logger.log(
+            `✅ 消费记录已更新为失败状态: recordId=${consumptionRecord.recordId}`,
+          );
+        }
+      } catch (refundError) {
+        // ⚠️ 退款失败是严重问题，需要人工介入！
+        this.logger.error(
+          `🚨 退款流程失败！这是严重问题，需要人工介入！` +
+            `userId=${userId}, ` +
+            `originalError=${error.message}, ` +
+            `refundError=${refundError.message}`,
+          refundError.stack,
+        );
+
+        // TODO: 这里应该发送告警通知（钉钉、邮件等）
+        // await this.alertService.sendCriticalAlert({
+        //   type: 'REFUND_FAILED',
+        //   userId,
+        //   error: refundError.message,
+        // });
+      }
+
+      // 3. 发送错误事件给前端
       if (progressSubject && !progressSubject.closed) {
         progressSubject.next({
           type: 'error',
@@ -320,10 +440,44 @@ export class InterviewService {
         });
         progressSubject.complete();
       }
+
       throw error;
     }
   }
 
+  /**
+   * 退还次数
+   * ⚠️ 关键方法：确保在任何失败情况下都能正确退还用户次数
+   */
+  private async refundCount(
+    userId: string,
+    type: 'resume' | 'special' | 'behavior',
+  ): Promise<void> {
+    const field =
+      type === 'resume'
+        ? 'resumeRemainingCount'
+        : type === 'special'
+          ? 'specialRemainingCount'
+          : 'behaviorRemainingCount';
+
+    // 使用原子操作退还次数
+    const result = await this.userModel.findByIdAndUpdate(
+      userId,
+      {
+        $inc: { [field]: 1 },
+      },
+      { new: true }, // 返回更新后的文档
+    );
+
+    // 验证退款是否成功
+    if (!result) {
+      throw new Error(`退款失败：用户不存在 userId=${userId}`);
+    }
+
+    this.logger.log(
+      `✅ 次数退还成功: userId=${userId}, type=${type}, 退还后=${result[field]}`,
+    );
+  }
 
   /**
    * 发送进度事件
@@ -372,5 +526,66 @@ export class InterviewService {
       default:
         return 0;
     }
+  }
+
+  /**
+   * 不同阶段的提示信息
+   */
+  private getStagePrompt(
+    progressSubject: Subject<ProgressEvent> | undefined,
+  ): void {
+    if (!progressSubject) return;
+    // 定义不同阶段的提示信息
+    const progressMessages = [
+      // 0-20%: 理解阶段
+      { progress: 0.05, message: '🤖 AI 正在深度理解您的简历内容...' },
+      { progress: 0.1, message: '📊 AI 正在分析您的技术栈和项目经验...' },
+      { progress: 0.15, message: '🔍 AI 正在识别您的核心竞争力...' },
+      { progress: 0.2, message: '📋 AI 正在对比岗位要求与您的背景...' },
+
+      // 20-50%: 设计问题阶段
+      { progress: 0.25, message: '💡 AI 正在设计针对性的技术问题...' },
+      { progress: 0.3, message: '🎯 AI 正在挖掘您简历中的项目亮点...' },
+      { progress: 0.35, message: '🧠 AI 正在构思场景化的面试问题...' },
+      { progress: 0.4, message: '⚡ AI 正在设计不同难度的问题组合...' },
+      { progress: 0.45, message: '🔬 AI 正在分析您的技术深度和广度...' },
+      { progress: 0.5, message: '📝 AI 正在生成基于 STAR 法则的答案...' },
+
+      // 50-70%: 优化阶段
+      { progress: 0.55, message: '✨ AI 正在优化问题的表达方式...' },
+      { progress: 0.6, message: '🎨 AI 正在为您准备回答要点和技巧...' },
+      { progress: 0.65, message: '💎 AI 正在提炼您的项目成果和亮点...' },
+      { progress: 0.7, message: '🔧 AI 正在调整问题难度分布...' },
+
+      // 70-85%: 完善阶段
+      { progress: 0.75, message: '📚 AI 正在补充技术关键词和考察点...' },
+      { progress: 0.8, message: '🎓 AI 正在完善综合评估建议...' },
+      { progress: 0.85, message: '🚀 AI 正在做最后的质量检查...' },
+      { progress: 0.9, message: '✅ AI 即将完成问题生成...' },
+    ];
+
+    // 模拟一个定时器：每间隔一秒，响应一次数据
+    let progress = 0;
+    let currentMessage = progressMessages[0];
+    const interval = setInterval(() => {
+      progress += 1;
+      currentMessage = progressMessages[progress];
+      // 发送进度事件
+      this.emitProgress(
+        progressSubject,
+        progress,
+        currentMessage.message,
+        'generating',
+      );
+      // 简单处理，到了 progressMessages 的 length 就结束了
+      if (progress === progressMessages.length - 1) {
+        clearInterval(interval);
+        this.emitProgress(progressSubject, 100, 'AI 已完成问题生成', 'done');
+        return {
+          questions: [],
+          analysis: [],
+        };
+      }
+    }, 1000);
   }
 }
