@@ -38,6 +38,11 @@ import {
   ResumeQuizAnalysisDto,
   ReportStatus,
 } from '../dto/analysis-report.dto';
+import {
+  UserTransaction,
+  UserTransactionDocument,
+  UserTransactionType,
+} from '../../user/schemas/user-transaction.schema';
 
 /**
  * 进度事件
@@ -136,6 +141,8 @@ export class InterviewService {
     private userModel: Model<UserDocument>,
     @InjectModel(AIInterviewResult.name)
     private aiInterviewResultModel: Model<AIInterviewResultDocument>,
+    @InjectModel(UserTransaction.name)
+    private userTransactionModel: Model<UserTransactionDocument>,
   ) {}
 
   /**
@@ -2426,5 +2433,125 @@ export class InterviewService {
 
       throw error;
     }
+  }
+
+  /**
+   * 兑换套餐（使用旺旺币兑换面试次数）
+   * @param userId 用户ID
+   * @param packageType 兑换类型
+   * @returns 兑换结果
+   */
+  async exchangePackage(
+    userId: string,
+    packageType: 'resume' | 'special' | 'behavior',
+  ): Promise<any> {
+    const EXCHANGE_COST = 20; // 每次兑换消耗 20 旺旺币
+    const EXCHANGE_COUNT = 1; // 每次兑换增加 1 次
+
+    this.logger.log(
+      `🎁 开始兑换套餐: userId=${userId}, packageType=${packageType}`,
+    );
+
+    // 1. 检查用户旺旺币余额
+    const user = await this.userModel.findById(userId);
+    if (!user) {
+      throw new BadRequestException('用户不存在');
+    }
+
+    if (user.wwCoinBalance < EXCHANGE_COST) {
+      throw new BadRequestException(
+        `旺旺币余额不足，需要 ${EXCHANGE_COST} 旺旺币，当前余额 ${user.wwCoinBalance}`,
+      );
+    }
+
+    // 2. 根据兑换类型确定要增加的次数字段
+    let countField: string;
+    let packageName: string;
+
+    switch (packageType) {
+      case 'resume':
+        countField = 'resumeRemainingCount';
+        packageName = '简历押题';
+        break;
+      case 'special':
+        countField = 'specialRemainingCount';
+        packageName = '专项面试';
+        break;
+      case 'behavior':
+        countField = 'behaviorRemainingCount';
+        packageName = '行测+HR面试';
+        break;
+      default:
+        throw new BadRequestException('无效的兑换类型');
+    }
+
+    // 3. 执行兑换（原子操作）
+    const updateData: any = {
+      $inc: {
+        wwCoinBalance: -EXCHANGE_COST, // 扣除旺旺币
+        [countField]: EXCHANGE_COUNT, // 增加对应次数
+      },
+    };
+
+    const updatedUser = await this.userModel.findByIdAndUpdate(
+      userId,
+      updateData,
+      { new: true },
+    );
+
+    if (!updatedUser) {
+      throw new BadRequestException('兑换失败，请重试');
+    }
+
+    this.logger.log(
+      `✅ 兑换成功: userId=${userId}, packageType=${packageType}, ` +
+        `旺旺币余额=${updatedUser.wwCoinBalance}, ` +
+        `${countField}=${updatedUser[countField]}`,
+    );
+
+    // 4. 创建交易记录（异步，不影响返回）
+    const outTradeNo = `WWB${Date.now()}${Math.floor(Math.random() * 1000)
+      .toString()
+      .padStart(3, '0')}`;
+
+    try {
+      await this.userTransactionModel.create({
+        user: new Types.ObjectId(userId),
+        userIdentifier: userId,
+        type: UserTransactionType.EXPENSE,
+        amount: EXCHANGE_COST,
+        currency: 'WWB', // 旺旺币
+        description: `兑换${packageName}`,
+        planName: '旺旺币兑换',
+        source: 'wwb_exchange',
+        metadata: {
+          packageType,
+          packageName,
+          exchangeCount: EXCHANGE_COUNT,
+        },
+        payData: {
+          outTradeNo,
+          paidAt: new Date(),
+          channel: 'wwb',
+        },
+      });
+
+      this.logger.log(`💾 交易记录已创建: outTradeNo=${outTradeNo}`);
+    } catch (error) {
+      // 记录失败不影响兑换结果
+      this.logger.error(`❌ 创建交易记录失败: ${error.message}`);
+    }
+
+    // 5. 返回兑换结果（旺旺币保留两位小数）
+    return {
+      success: true,
+      message: `兑换成功！您已成功兑换 1 次${packageName}`,
+      remainingWWCoin: parseFloat(updatedUser.wwCoinBalance.toFixed(2)),
+      remainingCount: updatedUser[countField],
+      packageType,
+      packageName,
+      exchangeCost: EXCHANGE_COST,
+      exchangeCount: EXCHANGE_COUNT,
+    };
   }
 }
