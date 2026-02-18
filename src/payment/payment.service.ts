@@ -20,8 +20,9 @@ import {
   UserTransactionType,
 } from '../user/schemas/user-transaction.schema';
 
-import { AlipayPaymentService } from './providers/alipay-payment.service';
+// import { AlipayPaymentService } from './providers/alipay-payment.service';
 // import { WechatPaymentService } from './providers/wechat-payment.service';
+import { VirtualPaymentService } from './providers/virtual-payment.service';
 
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
@@ -110,8 +111,7 @@ export class PaymentService {
     private readonly userModel: Model<UserDocument>,
     @InjectModel(UserTransaction.name)
     private readonly userTransactionModel: Model<UserTransactionDocument>,
-    private readonly alipayPayment: AlipayPaymentService,
-    // private readonly wechatPayment: WechatPaymentService,
+    private readonly virtualPayment: VirtualPaymentService,
   ) {}
 
   // 进行套餐逻辑验证
@@ -200,19 +200,12 @@ export class PaymentService {
       `创建支付订单记录: orderId=${payload.orderId}, channel=${dto.channel}, amount=${payload.amount}, userId=${user?.userId}`,
     );
 
-    // // 根据支付渠道创建支付订单
-    // if (dto.channel === PaymentChannel.ALIPAY) {
-    //   // 支付宝支付
-    //   return this.alipayPayment.initiatePayment(payload);
-    // }
-    return this.alipayPayment.initiatePayment(payload);
-
-    // // 微信支付 - 不再需要内存缓存，元数据已保存到数据库
-    // return this.wechatPayment.initiatePayment(payload);
+    // 使用虚拟支付
+    return this.virtualPayment.initiatePayment(payload);
   }
 
   /**
-   * 主动查询支付宝支付结果
+   * 主动查询支付结果（虚拟支付）
    * @param orderId 订单ID
    * @param user 当前用户信息
    * @returns 支付结果
@@ -238,29 +231,34 @@ export class PaymentService {
       return { orderId, success: true };
     }
 
-    // 获取支付宝查询结果
-    const response = await this.alipayPayment.queryTrade(orderId);
+    // 调用虚拟支付查询
+    const response = await this.virtualPayment.queryTrade(orderId);
 
     // 判断支付是否成功
     const success = response.tradeStatus === 'TRADE_SUCCESS';
     this.logger.log(
-      `支付宝支付订单查询结果: orderId=${orderId}, status=${response.tradeStatus}`,
+      `虚拟支付订单查询结果: orderId=${orderId}, status=${response.tradeStatus}`,
     );
 
     if (success) {
-      // 使用数据库中的元数据，支付宝的 passback_params 作为备份
-      const metadata = this.extractAlipayMetadata(
-        response,
-        paymentRecord.metadata,
-      );
-      response.metadata = metadata;
-
       await this.finalizePaymentSuccess({
-        ...(response as PaymentRecordContext),
         userId: user.userId,
-        channel: PaymentChannel.ALIPAY,
-        paidAt: response.sendPayDate,
-        currency: 'CNY',
+        buyerLogonId: response.buyerLogonId,
+        buyerPayAmount: response.buyerPayAmount,
+        invoiceAmount: response.invoiceAmount,
+        outTradeNo: response.outTradeNo,
+        passbackParams: '', // Virtual payment doesn't provide this
+        pointAmount: response.pointAmount,
+        receiptAmount: response.receiptAmount,
+        totalAmount: response.totalAmount,
+        tradeNo: response.tradeNo,
+        tradeStatus: response.tradeStatus,
+        buyerOpenId: '', // Virtual payment doesn't provide this
+        traceId: orderId, // Use orderId as traceId for virtual payment
+        metadata: paymentRecord.metadata,
+        channel: paymentRecord.channel,
+        paidAt: new Date(response.sendPayDate),
+        currency: paymentRecord.currency || 'CNY',
       });
     }
 

@@ -18,6 +18,10 @@ import {
 } from './schemas/interview-quiz-result.schema';
 import { User, UserSchema } from '../user/schemas/user.schema';
 import {
+  UserTransaction,
+  UserTransactionSchema,
+} from '../user/schemas/user-transaction.schema';
+import {
   AIInterviewResult,
   AIInterviewResultSchema,
 } from './schemas/ai-interview-result.schema';
@@ -30,8 +34,9 @@ import {
       { name: ConsumptionRecord.name, schema: ConsumptionRecordSchema },
       { name: ResumeQuizResult.name, schema: ResumeQuizResultSchema },
       { name: User.name, schema: UserSchema },
-          { name: AIInterviewResult.name, schema: AIInterviewResultSchema },
-        ]),
+      { name: AIInterviewResult.name, schema: AIInterviewResultSchema },
+      { name: UserTransaction.name, schema: UserTransactionSchema },
+    ]),
   ],
   controllers: [InterviewController],
   providers: [

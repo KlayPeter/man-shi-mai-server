@@ -5,6 +5,7 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { UserModule } from './user/user.module';
 import { InterviewModule } from './interview/interview.module';
+import { PaymentModule } from './payment/payment.module';
 import { DatabaseModule } from './database/database.module';
 import { LoggerMiddleware } from './common/middleware/logger.middleware';
 import { APP_INTERCEPTOR } from '@nestjs/core';
@@ -53,6 +54,7 @@ import { getTokenExpirationSeconds } from './common/utils/jwt.util';
     }),
     UserModule,
     InterviewModule,
+    PaymentModule,
     DatabaseModule,
     CommonModule,
     WechatModule,
