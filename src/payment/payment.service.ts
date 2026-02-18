@@ -601,10 +601,10 @@ export class PaymentService {
     // 根据套餐ID更新用户权益
     switch (planId) {
       case 'custom':
-        // TODO：这里增加的旺旺币为实付金额，后续看是否需要根据套餐金额进行调整
+        // TODO：这里增加的小麦币为实付金额，后续看是否需要根据套餐金额进行调整
         const effectiveAmount = this.normalizeAmount(context.buyerPayAmount);
         if (effectiveAmount > 0) {
-          increments.wwCoinBalance = effectiveAmount;
+          increments.maiCoinBalance = effectiveAmount;
         }
         break;
       case 'single':

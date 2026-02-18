@@ -1,4 +1,4 @@
-import {
+﻿import {
   Controller,
   Post,
   Body,
@@ -307,7 +307,7 @@ export class InterviewController {
 
   
   /**
-   * 使用旺旺币兑换套餐
+   * 使用小麦币兑换套餐
    */
   @Post('exchange-package')
   @UseGuards(JwtAuthGuard)
@@ -320,4 +320,5 @@ export class InterviewController {
     return ResponseUtil.success(result, result.message);
   }
 }
+
 

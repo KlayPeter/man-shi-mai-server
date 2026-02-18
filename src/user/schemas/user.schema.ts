@@ -65,7 +65,7 @@ export class User {
   aiInterviewRemainingMinutes: number; // AI模拟面试剩余时间（分钟）
 
   @Prop({ default: 0 })
-  wwCoinBalance: number; // 旺旺币余额
+  maiCoinBalance: number; // 小麦币余额
 
   @Prop({ default: 0 })
   resumeRemainingCount: number; // 简历押题剩余次数

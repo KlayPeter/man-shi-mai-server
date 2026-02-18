@@ -26,7 +26,7 @@ import { TraceIdMiddleware } from './common/middleware/trace-id.middleware';
       isGlobal: true,
     }),
     MongooseModule.forRoot(
-      process.env.MONGODB_URI || 'mongodb://localhost:27017/wwzhidao',
+      process.env.MONGODB_URI || 'mongodb://localhost:27017/manshimai',
     ),
     WinstonModule.forRoot({
       format: winston.format.combine(
@@ -35,7 +35,7 @@ import { TraceIdMiddleware } from './common/middleware/trace-id.middleware';
         winston.format.json(),
       ),
       defaultMeta: {
-        service: 'wwzhidao-server',
+        service: 'manshimai-server',
       },
       transports: [new winston.transports.Console()],
     }),
@@ -45,7 +45,7 @@ import { TraceIdMiddleware } from './common/middleware/trace-id.middleware';
       useFactory: async (configService: ConfigService) => {
         const expirationSeconds = getTokenExpirationSeconds();
         return {
-          secret: configService.get<string>('JWT_SECRET') || 'wwzhidao-secret',
+          secret: configService.get<string>('JWT_SECRET') || 'mmx-secret',
           signOptions: {
             expiresIn: expirationSeconds,
           },

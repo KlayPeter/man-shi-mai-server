@@ -1,4 +1,4 @@
-// src/interview/services/interview.service.ts
+﻿// src/interview/services/interview.service.ts
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { SessionManager } from '../../ai/services/session.manager';
@@ -2440,7 +2440,7 @@ export class InterviewService {
   }
 
   /**
-   * 兑换套餐（使用旺旺币兑换面试次数）
+   * 兑换套餐（使用小麦币兑换面试次数）
    * @param userId 用户ID
    * @param packageType 兑换类型
    * @returns 兑换结果
@@ -2449,22 +2449,22 @@ export class InterviewService {
     userId: string,
     packageType: 'resume' | 'special' | 'behavior',
   ): Promise<any> {
-    const EXCHANGE_COST = 20; // 每次兑换消耗 20 旺旺币
+    const EXCHANGE_COST = 20; // 每次兑换消耗 20 小麦币
     const EXCHANGE_COUNT = 1; // 每次兑换增加 1 次
 
     this.logger.log(
       `🎁 开始兑换套餐: userId=${userId}, packageType=${packageType}`,
     );
 
-    // 1. 检查用户旺旺币余额
+    // 1. 检查用户小麦币余额
     const user = await this.userModel.findById(userId);
     if (!user) {
       throw new BadRequestException('用户不存在');
     }
 
-    if (user.wwCoinBalance < EXCHANGE_COST) {
+    if (user.maiCoinBalance < EXCHANGE_COST) {
       throw new BadRequestException(
-        `旺旺币余额不足，需要 ${EXCHANGE_COST} 旺旺币，当前余额 ${user.wwCoinBalance}`,
+        `小麦币余额不足，需要 ${EXCHANGE_COST} 小麦币，当前余额 ${user.maiCoinBalance}`,
       );
     }
 
@@ -2492,7 +2492,7 @@ export class InterviewService {
     // 3. 执行兑换（原子操作）
     const updateData: any = {
       $inc: {
-        wwCoinBalance: -EXCHANGE_COST, // 扣除旺旺币
+        maiCoinBalance: -EXCHANGE_COST, // 扣除小麦币
         [countField]: EXCHANGE_COUNT, // 增加对应次数
       },
     };
@@ -2509,12 +2509,12 @@ export class InterviewService {
 
     this.logger.log(
       `✅ 兑换成功: userId=${userId}, packageType=${packageType}, ` +
-        `旺旺币余额=${updatedUser.wwCoinBalance}, ` +
+        `小麦币余额=${updatedUser.maiCoinBalance}, ` +
         `${countField}=${updatedUser[countField]}`,
     );
 
     // 4. 创建交易记录（异步，不影响返回）
-    const outTradeNo = `WWB${Date.now()}${Math.floor(Math.random() * 1000)
+    const outTradeNo = `MAI${Date.now()}${Math.floor(Math.random() * 1000)
       .toString()
       .padStart(3, '0')}`;
 
@@ -2524,10 +2524,10 @@ export class InterviewService {
         userIdentifier: userId,
         type: UserTransactionType.EXPENSE,
         amount: EXCHANGE_COST,
-        currency: 'WWB', // 旺旺币
+        currency: 'MAI', // 小麦币
         description: `兑换${packageName}`,
-        planName: '旺旺币兑换',
-        source: 'wwb_exchange',
+        planName: '小麦币兑换',
+        source: 'MAI_exchange',
         metadata: {
           packageType,
           packageName,
@@ -2536,7 +2536,7 @@ export class InterviewService {
         payData: {
           outTradeNo,
           paidAt: new Date(),
-          channel: 'wwb',
+          channel: 'MAI',
         },
       });
 
@@ -2546,11 +2546,11 @@ export class InterviewService {
       this.logger.error(`❌ 创建交易记录失败: ${error.message}`);
     }
 
-    // 5. 返回兑换结果（旺旺币保留两位小数）
+    // 5. 返回兑换结果（小麦币保留两位小数）
     return {
       success: true,
       message: `兑换成功！您已成功兑换 1 次${packageName}`,
-      remainingWWCoin: parseFloat(updatedUser.wwCoinBalance.toFixed(2)),
+      remainingMaiCoin: parseFloat(updatedUser.maiCoinBalance.toFixed(2)),
       remainingCount: updatedUser[countField],
       packageType,
       packageName,
@@ -2559,3 +2559,4 @@ export class InterviewService {
     };
   }
 }
+

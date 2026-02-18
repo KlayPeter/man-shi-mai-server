@@ -75,7 +75,7 @@ export function createWinstonLogger(nodeEnv: string) {
         format: winston.format.combine(
           winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
           winston.format.ms(),
-          nestWinstonModuleUtilities.format.nestLike('WWZhiDao', {
+          nestWinstonModuleUtilities.format.nestLike('ManShiMai', {
             colors: true,
             prettyPrint: true,
           }),
@@ -88,7 +88,7 @@ export function createWinstonLogger(nodeEnv: string) {
     level: nodeEnv === 'production' ? 'info' : 'debug',
     format: commonFormat,
     defaultMeta: {
-      service: 'wwzhidao-server', // 服务名
+      service: 'manshimai-server', // 服务名
       environment: nodeEnv,
     },
     transports,
