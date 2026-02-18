@@ -18,18 +18,18 @@ import {
 } from './schemas/interview-quiz-result.schema';
 import { User, UserSchema } from '../user/schemas/user.schema';
 import {
-  UserTransaction,
-  UserTransactionSchema,
-} from '../user/schemas/user-transaction.schema';
-import {
   AIInterviewResult,
   AIInterviewResultSchema,
 } from './schemas/ai-interview-result.schema';
+import {
+  UserTransaction,
+  UserTransactionSchema,
+} from '../user/schemas/user-transaction.schema';
 
 @Module({
   imports: [
     ConfigModule,
-    AIModule,
+    AIModule, // 导入 AI 模块以使用 AIModelFactory
     MongooseModule.forFeature([
       { name: ConsumptionRecord.name, schema: ConsumptionRecordSchema },
       { name: ResumeQuizResult.name, schema: ResumeQuizResultSchema },

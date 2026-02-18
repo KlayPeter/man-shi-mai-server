@@ -1,46 +1,48 @@
-import { Module, NestModule, MiddlewareConsumer } from '@nestjs/common';
+import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
+import { APP_FILTER, APP_INTERCEPTOR } from '@nestjs/core';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { MongooseModule } from '@nestjs/mongoose';
+import { JwtModule } from '@nestjs/jwt';
+import { PassportModule } from '@nestjs/passport';
+import { WinstonModule } from 'nest-winston';
+import * as winston from 'winston';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { UserModule } from './user/user.module';
-import { InterviewModule } from './interview/interview.module';
-import { PaymentModule } from './payment/payment.module';
-import { DatabaseModule } from './database/database.module';
-import { LoggerMiddleware } from './common/middleware/logger.middleware';
-import { APP_INTERCEPTOR } from '@nestjs/core';
-import { ResponseInterceptor } from './common/interceptors/response.interceptor';
-import { JwtModule } from '@nestjs/jwt';
-import { JwtStrategy } from './auth/jwt.strategy';
-import { APP_FILTER } from '@nestjs/core';
-import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
-import { configValidationSchema } from './config/config.schema';
-import { CommonModule } from './common/common.module';
-import { WechatController } from './wechat/wechat.controller';
 import { WechatModule } from './wechat/wechat.module';
-import { PassportModule } from '@nestjs/passport';
+import { PaymentModule } from './payment/payment.module';
+import { StsModule } from './sts/sts.module';
+import { InterviewModule } from './interview/interview.module';
+import { ResponseInterceptor } from './common/interceptors/response.interceptor';
+import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
+import { JwtStrategy } from './auth/jwt.strategy';
 import { getTokenExpirationSeconds } from './common/utils/jwt.util';
+import { TraceIdMiddleware } from './common/middleware/trace-id.middleware';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
-      envFilePath: `.env.${process.env.NODE_ENV || 'development'}`, // 根据环境变量加载不同的配置文件
+      envFilePath: '.env.development',
       isGlobal: true,
-      validationSchema: configValidationSchema, // 添加验证模式
-      validationOptions: {
-        // 可选：自定义验证选项
-        // allowUnknown: false, // 不允许未知的环境变量
-        abortEarly: true, // 在第一个错误时中止验证
-      },
-    }), // 全局模块，可以任何地方使用
-
+    }),
     MongooseModule.forRoot(
-      process.env.MONGODB_URI || 'mongodb://localhost:27017/manshimai',
+      process.env.MONGODB_URI || 'mongodb://localhost:27017/wwzhidao',
     ),
+    WinstonModule.forRoot({
+      format: winston.format.combine(
+        winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
+        winston.format.ms(),
+        winston.format.json(),
+      ),
+      defaultMeta: {
+        service: 'wwzhidao-server',
+      },
+      transports: [new winston.transports.Console()],
+    }),
     PassportModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],
-      useFactory:async (configService: ConfigService) => {
+      useFactory: async (configService: ConfigService) => {
         const expirationSeconds = getTokenExpirationSeconds();
         return {
           secret: configService.get<string>('JWT_SECRET') || 'wwzhidao-secret',
@@ -53,16 +55,14 @@ import { getTokenExpirationSeconds } from './common/utils/jwt.util';
       global: true,
     }),
     UserModule,
-    InterviewModule,
-    PaymentModule,
-    DatabaseModule,
-    CommonModule,
     WechatModule,
+    PaymentModule,
+    StsModule,
+    InterviewModule,
   ],
-  controllers: [AppController, WechatController],
+  controllers: [AppController],
   providers: [
     AppService,
-    LoggerMiddleware,
     JwtStrategy,
     {
       provide: APP_INTERCEPTOR,
@@ -76,6 +76,6 @@ import { getTokenExpirationSeconds } from './common/utils/jwt.util';
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
-    consumer.apply(LoggerMiddleware).forRoutes('*');
+    consumer.apply(TraceIdMiddleware).forRoutes('*');
   }
 }
