@@ -341,6 +341,66 @@ export class InterviewController {
     return ResponseUtil.success(history, '获取成功');
   }
 
+  /**
+   * 获取简历押题结果详情
+   */
+  @Get('resume/quiz/result/:resultId')
+  @UseGuards(JwtAuthGuard)
+  async getResumeQuizResult(
+    @Param('resultId') resultId: string,
+    @Request() req: any,
+  ) {
+    const result = await this.interviewService.getResumeQuizResult(
+      req.user.userId,
+      resultId,
+    );
+    return ResponseUtil.success(result, '获取成功');
+  }
+
+  /**
+   * 获取模拟面试问答列表
+   */
+  @Get('mock/result/:resultId/qa')
+  @UseGuards(JwtAuthGuard)
+  async getMockInterviewQA(
+    @Param('resultId') resultId: string,
+    @Request() req: any,
+  ) {
+    const qaList = await this.interviewService.getMockInterviewQA(
+      req.user.userId,
+      resultId,
+    );
+    return ResponseUtil.success(qaList, '获取成功');
+  }
+
+  /**
+   * 获取模拟面试详情
+   */
+  @Get('mock/history/:resultId')
+  @UseGuards(JwtAuthGuard)
+  async getMockInterviewHistory(
+    @Param('resultId') resultId: string,
+    @Request() req: any,
+  ) {
+    const result = await this.interviewService.getMockInterviewHistory(
+      req.user.userId,
+      resultId,
+    );
+    return ResponseUtil.success(result, '获取成功');
+  }
+
+  /**
+   * 获取未完成的模拟面试
+   */
+  @Get('mock/unfinished')
+  @UseGuards(JwtAuthGuard)
+  async getUnfinishedMockInterviews(@Request() req: any) {
+    const interviews = await this.interviewService.getUnfinishedMockInterviews(
+      req.user.userId,
+    );
+    return ResponseUtil.success(interviews, '获取成功');
+  }
+
 
   /**
    * 使用小麦币兑换套餐

@@ -2591,5 +2591,60 @@ export class InterviewService {
       .sort({ createdAt: -1 })
       .lean();
   }
+
+  /**
+   * 获取简历押题结果详情
+   */
+  async getResumeQuizResult(userId: string, resultId: string): Promise<any> {
+    const result = await this.resumeQuizResultModel.findOne({
+      userId,
+      resultId,
+    });
+    if (!result) {
+      throw new NotFoundException('结果不存在');
+    }
+    return result;
+  }
+
+  /**
+   * 获取模拟面试问答列表
+   */
+  async getMockInterviewQA(userId: string, resultId: string): Promise<any> {
+    const result = await this.aiInterviewResultModel
+      .findOne({ userId, resultId })
+      .select('qaList');
+    if (!result) {
+      throw new NotFoundException('面试记录不存在');
+    }
+    return result.qaList;
+  }
+
+  /**
+   * 获取模拟面试详情
+   */
+  async getMockInterviewHistory(userId: string, resultId: string): Promise<any> {
+    const result = await this.aiInterviewResultModel.findOne({
+      userId,
+      resultId,
+    });
+    if (!result) {
+      throw new NotFoundException('面试记录不存在');
+    }
+    return result;
+  }
+
+  /**
+   * 获取未完成的模拟面试
+   */
+  async getUnfinishedMockInterviews(userId: string): Promise<any[]> {
+    return await this.aiInterviewResultModel
+      .find({
+        userId,
+        status: { $in: ['in_progress', 'paused'] },
+      })
+      .select('resultId company position interviewType status createdAt updatedAt')
+      .sort({ updatedAt: -1 })
+      .lean();
+  }
 }
 
