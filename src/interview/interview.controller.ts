@@ -20,7 +20,10 @@ import {
 } from './dto/mock-interview.dto';
 import { ResponseUtil } from '../common/utils/response.util';
 import { ExchangePackageDto } from './dto/exchange-package.dto';
+import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 
+@ApiTags('面试管理')
+@ApiBearerAuth()
 @Controller('interview')
 export class InterviewController {
   constructor(private readonly interviewService: InterviewService) {}
@@ -32,6 +35,7 @@ export class InterviewController {
    */
   @Post('/analyze-resume')
   @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: '分析简历' })
   async analyzeResume(
     @Body() body: { position: string; resume: string; jobDescription: string },
     @Request() req: any,
@@ -55,6 +59,7 @@ export class InterviewController {
    * @returns
    */
   @Post('/continue-conversation')
+  @ApiOperation({ summary: '继续对话' })
   async continueConversation(
     @Body() body: { sessionId: string; question: string },
   ) {
@@ -76,6 +81,7 @@ export class InterviewController {
    */
   @Post('resume/quiz/stream')
   @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: '简历押题（流式响应）' })
   async resumeQuizStream(
     @Body() dto: ResumeQuizDto,
     @Request() req: any,
@@ -128,6 +134,7 @@ export class InterviewController {
    */
   @Post('mock/start')
   @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: '开始模拟面试（流式响应）' })
   async startMockInterview(
     @Body() dto: StartMockInterviewDto,
     @Request() req: any,
@@ -189,6 +196,7 @@ export class InterviewController {
    */
   @Post('mock/answer')
   @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: '回答面试问题（流式响应）' })
   async answerMockInterview(
     @Body() dto: AnswerMockInterviewDto,
     @Request() req: any,
@@ -250,6 +258,7 @@ export class InterviewController {
    */
   @Post('mock/end/:resultId')
   @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: '结束面试' })
   async endMockInterview(
     @Param('resultId') resultId: string,
     @Request() req: any,
@@ -264,6 +273,7 @@ export class InterviewController {
    */
   @Post('mock/pause/:resultId')
   @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: '暂停面试' })
   async pauseMockInterview(
     @Param('resultId') resultId: string,
     @Request() req: any,
@@ -281,6 +291,7 @@ export class InterviewController {
    */
   @Post('mock/resume/:resultId')
   @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: '恢复面试' })
   async resumeMockInterview(
     @Param('resultId') resultId: string,
     @Request() req: any,
@@ -299,6 +310,7 @@ export class InterviewController {
    */
   @Get('analysis/report/:resultId')
   @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: '获取分析报告' })
   async getAnalysisReport(
     @Param('resultId') resultId: string,
     @Request() req: any,
@@ -316,6 +328,7 @@ export class InterviewController {
    */
   @Get('resume/quiz/history')
   @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: '获取简历押题历史记录' })
   async getResumeQuizHistory(@Request() req: any) {
     const history = await this.interviewService.getResumeQuizHistory(
       req.user.userId,
@@ -328,6 +341,7 @@ export class InterviewController {
    */
   @Get('special/history')
   @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: '获取专项面试历史记录' })
   async getSpecialInterviewHistory(@Request() req: any) {
     const history = await this.interviewService.getSpecialInterviewHistory(
       req.user.userId,
@@ -340,6 +354,7 @@ export class InterviewController {
    */
   @Get('behavior/history')
   @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: '获取综合面试历史记录' })
   async getBehaviorInterviewHistory(@Request() req: any) {
     const history = await this.interviewService.getBehaviorInterviewHistory(
       req.user.userId,
@@ -352,6 +367,7 @@ export class InterviewController {
    */
   @Get('resume/quiz/result/:resultId')
   @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: '获取简历押题结果详情' })
   async getResumeQuizResult(
     @Param('resultId') resultId: string,
     @Request() req: any,
@@ -368,6 +384,7 @@ export class InterviewController {
    */
   @Get('mock/result/:resultId/qa')
   @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: '获取模拟面试问答列表' })
   async getMockInterviewQA(
     @Param('resultId') resultId: string,
     @Request() req: any,
@@ -384,6 +401,7 @@ export class InterviewController {
    */
   @Get('mock/history/:resultId')
   @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: '获取模拟面试详情' })
   async getMockInterviewHistory(
     @Param('resultId') resultId: string,
     @Request() req: any,
@@ -400,6 +418,7 @@ export class InterviewController {
    */
   @Get('mock/unfinished')
   @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: '获取未完成的模拟面试' })
   async getUnfinishedMockInterviews(@Request() req: any) {
     const interviews = await this.interviewService.getUnfinishedMockInterviews(
       req.user.userId,
@@ -413,6 +432,7 @@ export class InterviewController {
    */
   @Post('exchange-package')
   @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: '使用小麦币兑换套餐' })
   async exchangePackage(@Body() dto: ExchangePackageDto, @Request() req: any) {
     const result = await this.interviewService.exchangePackage(
       req.user.userId,

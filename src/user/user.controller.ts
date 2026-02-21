@@ -14,9 +14,11 @@ import { ResponseUtil } from '../common/utils/response.util';
 import { LoginDto } from './dto/login.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { Public } from '../auth/public.decorator';
-import { ApiOperation } from '@nestjs/swagger';
+import { ApiOperation, ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { UpdateUserDto } from './dto/update-user.dto';
 
+@ApiTags('用户管理')
+@ApiBearerAuth()
 @Controller('user')
 @UseGuards(JwtAuthGuard) // 使用认证守卫
 export class UserController {
@@ -24,6 +26,7 @@ export class UserController {
 
   @Post('register')
   @Public()
+  @ApiOperation({ summary: '用户注册' })
   async register(@Body() registerDto: RegisterDto) {
     const result = await this.userService.register(registerDto);
     return ResponseUtil.success(result, '注册成功');
@@ -31,6 +34,7 @@ export class UserController {
 
   @Post('login')
   @Public()
+  @ApiOperation({ summary: '用户登录' })
   async Login(@Body() LoginDto: LoginDto) { 
     const result = await this.userService.login(LoginDto);
     return ResponseUtil.success(result, '登录成功');
@@ -38,6 +42,7 @@ export class UserController {
 
   @Get('info')
   @UseGuards(JwtAuthGuard) // 保护路由，只有认证用户可以访问
+  @ApiOperation({ summary: '获取用户信息' })
   async getUserInfo(@Request() req: any) {
     const { userId } = req.user;
     const userInfo = await this.userService.getUserInfo(userId);
@@ -45,6 +50,7 @@ export class UserController {
   }
 
   @Put('profile')
+  @ApiOperation({ summary: '更新用户资料' })
   async updateUserProfile(
     @Request() req: any,
     @Body() updateUserDto: UpdateUserDto,
@@ -55,6 +61,7 @@ export class UserController {
   }
 
   @Post('update')
+  @ApiOperation({ summary: '更新用户信息' })
   async updateUser(
     @Request() req: any,
     @Body() updateUserDto: UpdateUserDto,
@@ -66,6 +73,7 @@ export class UserController {
 
   @Get('transactions')
   @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: '获取交易记录' })
   async getTransactions(@Request() req: any) {
     const { userId } = req.user;
     const transactions = await this.userService.getUserTransactions(userId);

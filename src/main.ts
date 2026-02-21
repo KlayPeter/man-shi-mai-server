@@ -3,6 +3,7 @@ import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
 import { WinstonModule, WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston';
 import { createWinstonLogger } from './common/logger/winston.config'; // 引入你之前的 winston 配置
+import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 
 async function bootstrap() {
   const nodeEnv = process.env.NODE_ENV || 'development';
@@ -33,6 +34,16 @@ async function bootstrap() {
     origin: 'http://localhost:8001',
     credentials: true,
   });
+
+  // 配置 Swagger
+  const config = new DocumentBuilder()
+    .setTitle('面试买 API')
+    .setDescription('面试买系统接口文档')
+    .setVersion('1.0')
+    .addBearerAuth()
+    .build();
+  const document = SwaggerModule.createDocument(app, config);
+  SwaggerModule.setup('api', app, document);
 
   const port = process.env.PORT || 3000;
   await app.listen(port);

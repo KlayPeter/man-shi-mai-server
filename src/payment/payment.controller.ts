@@ -11,12 +11,15 @@ import { PaymentService } from './payment.service';
 import { InitiatePaymentDto } from './dto/initiate-payment.dto';
 import { QueryPaymentStatusDto } from './dto/query-payment-status.dto';
 import { PaymentChannel } from './payment.types';
+import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 
 /**
- * 一个简单的小“保障“。比之前的版本（@Request() req: any,）更严格一些。相当于在 Request 上做了一个扩展（表示可能存在 user 字段）
+ * 一个简单的小"保障"。比之前的版本（@Request() req: any,）更严格一些。相当于在 Request 上做了一个扩展（表示可能存在 user 字段）
  */
 type AuthenticatedRequest = Request & { user?: { userId?: string } };
 
+@ApiTags('支付管理')
+@ApiBearerAuth()
 @Controller('payment')
 export class PaymentController {
   constructor(private readonly paymentService: PaymentService) {}
@@ -28,6 +31,7 @@ export class PaymentController {
    */
   @Post('order')
   @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: '创建支付订单' })
   initiatePayment(
     @Body() dto: InitiatePaymentDto,
     @Req() req: AuthenticatedRequest,
@@ -41,6 +45,7 @@ export class PaymentController {
    */
   @Post('order/status')
   @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: '查询支付状态' })
   queryAlipayPaymentStatus(
     @Body() dto: QueryPaymentStatusDto,
     @Req() req: AuthenticatedRequest,
@@ -63,6 +68,7 @@ export class PaymentController {
 
   @Post('mock-success')
   @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: '模拟支付成功' })
   mockPaymentSuccess(
     @Body() body: { orderId: string },
     @Req() req: AuthenticatedRequest,
