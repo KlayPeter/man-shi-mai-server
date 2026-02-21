@@ -17,6 +17,7 @@ import {
   ResumeQuizResultSchema,
 } from './schemas/interview-quiz-result.schema';
 import { User, UserSchema } from '../user/schemas/user.schema';
+import { Resume, ResumeSchema } from '../resume/schemas/resume.schema';
 import {
   AIInterviewResult,
   AIInterviewResultSchema,
@@ -34,6 +35,7 @@ import {
       { name: ConsumptionRecord.name, schema: ConsumptionRecordSchema },
       { name: ResumeQuizResult.name, schema: ResumeQuizResultSchema },
       { name: User.name, schema: UserSchema },
+      { name: Resume.name, schema: ResumeSchema },
       { name: AIInterviewResult.name, schema: AIInterviewResultSchema },
       { name: UserTransaction.name, schema: UserTransactionSchema },
     ]),

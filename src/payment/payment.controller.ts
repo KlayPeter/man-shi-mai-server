@@ -60,4 +60,16 @@ export class PaymentController {
     //   );
     // }
   }
+
+  @Post('mock-success')
+  @UseGuards(JwtAuthGuard)
+  mockPaymentSuccess(
+    @Body() body: { orderId: string },
+    @Req() req: AuthenticatedRequest,
+  ) {
+    return this.paymentService.mockPaymentSuccess(
+      body.orderId,
+      req.user as { userId: string },
+    );
+  }
 }

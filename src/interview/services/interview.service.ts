@@ -12,6 +12,7 @@ import { ConsumptionStatus } from '../schemas/consumption-record.schema';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { User, UserDocument } from '../../user/schemas/user.schema';
+import { Resume, ResumeDocument } from '../../resume/schemas/resume.schema';
 import { Model, Types } from 'mongoose';
 import {
   ConsumptionRecord,
@@ -51,7 +52,7 @@ import { traceIdStorage } from '../../common/middleware/trace-id.middleware';
  * 进度事件
  */
 export interface ProgressEvent {
-  type: 'progress' | 'complete' | 'error' | 'timeout';
+  type: 'progress' | 'complete' | 'error' | 'timeout' | 'yati-complete';
   step?: number;
   label?: string;
   progress: number; // 0-100
@@ -142,6 +143,8 @@ export class InterviewService {
     private resumeQuizResultModel: Model<ResumeQuizResultDocument>,
     @InjectModel(User.name)
     private userModel: Model<UserDocument>,
+    @InjectModel(Resume.name)
+    private resumeModel: Model<ResumeDocument>,
     @InjectModel(AIInterviewResult.name)
     private aiInterviewResultModel: Model<AIInterviewResultDocument>,
     @InjectModel(UserTransaction.name)
@@ -543,8 +546,19 @@ export class InterviewService {
       this.emitProgress(
         progressSubject,
         100,
-        `✅ 所有分析完成，正在保存结果...响应数据为${JSON.stringify(result)}`,
+        '✅ 所有分析完成，正在保存结果...',
+        'done',
       );
+
+      // 发送结果数据
+      if (progressSubject && !progressSubject.closed) {
+        progressSubject.next({
+          type: 'yati-complete',
+          progress: 100,
+          data: result,
+        });
+      }
+
       return result;
     } catch (error) {
       this.logger.error(
@@ -750,7 +764,7 @@ export class InterviewService {
         // 简单处理，到了 progressMessages 的 length 就结束了
         if (progress === progressMessages.length - 1) {
           clearInterval(interval);
-          this.emitProgress(progressSubject, 100, 'AI 已完成问题生成', 'done');
+          this.emitProgress(progressSubject, 45, 'AI 已完成问题生成', 'done');
           return {
             questions: [],
             analysis: [],
@@ -777,13 +791,31 @@ export class InterviewService {
       return dto.resumeContent;
     }
 
-    // 优先级 2：如果提供了 resumeId，尝试查询
-    // 之前 ResumeQuizDto 中没有创建 resumeURL 的属性，所以这里需要在 ResumeQuizDto 中补充以下 resumeURL
-    if (dto.resumeURL) {
+    // 优先级 2：如果提供了 resumeId，从数据库查询简历
+    let urlToDownload = dto.resumeURL;
+
+    if (dto.resumeId) {
+      this.logger.log(`📝 从数据库查询简历: resumeId=${dto.resumeId}`);
+      const resume = await this.resumeModel.findById(dto.resumeId);
+
+      if (!resume) {
+        throw new BadRequestException('简历不存在');
+      }
+
+      if (resume.userId !== userId) {
+        throw new BadRequestException('无权访问该简历');
+      }
+
+      urlToDownload = resume.url;
+      this.logger.log(`✅ 简历查询成功，URL=${urlToDownload}`);
+    }
+
+    // 优先级 3：如果有 URL（来自 resumeId 或 resumeURL），下载并解析
+    if (urlToDownload) {
       try {
         // 1. 从 URL 下载文件
         const rawText = await this.documentParserService.parseDocumentFromUrl(
-          dto.resumeURL,
+          urlToDownload,
         );
 
         // 2. 清理文本（移除格式化符号等）
@@ -849,7 +881,7 @@ export class InterviewService {
     }
 
     // 都没提供，返回错误
-    throw new BadRequestException('请提供简历URL或简历内容');
+    throw new BadRequestException('请提供简历ID、简历URL或简历内容');
   }
 
   /**

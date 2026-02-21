@@ -106,6 +106,12 @@ export class InterviewController {
           res.end();
         },
         complete: () => {
+          // 发送完成事件
+          res.write(
+            `data: ${JSON.stringify({
+              type: 'complete',
+            })}\n\n`,
+          );
           // 完成后关闭连接
           res.end();
         },

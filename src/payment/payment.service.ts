@@ -727,4 +727,49 @@ export class PaymentService {
       )
       .exec();
   }
+
+  async mockPaymentSuccess(orderId: string, user: { userId: string }) {
+    const paymentRecord = await this.paymentRecordModel
+      .findOne({ orderId })
+      .exec();
+
+    if (!paymentRecord) {
+      throw new BadRequestException('订单不存在');
+    }
+
+    if (paymentRecord.userId !== user.userId) {
+      throw new ForbiddenException('无权操作此订单');
+    }
+
+    const context: PaymentRecordContext = {
+      userId: paymentRecord.userId,
+      buyerLogonId: 'mock@test.com',
+      buyerOpenId: 'mock_open_id',
+      buyerPayAmount: paymentRecord.amount.toString(),
+      invoiceAmount: paymentRecord.amount.toString(),
+      outTradeNo: orderId,
+      passbackParams: JSON.stringify(paymentRecord.metadata || {}),
+      pointAmount: '0',
+      receiptAmount: paymentRecord.amount.toString(),
+      totalAmount: paymentRecord.amount.toString(),
+      tradeNo: `mock_${Date.now()}`,
+      tradeStatus: 'TRADE_SUCCESS',
+      traceId: `mock_trace_${Date.now()}`,
+      channel: paymentRecord.channel,
+      paidAt: new Date(),
+      metadata: paymentRecord.metadata,
+      currency: 'CNY',
+    };
+
+    await this.finalizePaymentSuccess(context);
+
+    const updatedUser = await this.userModel.findById(user.userId).lean().exec();
+
+    return {
+      success: true,
+      message: '模拟支付成功',
+      orderId,
+      user: updatedUser,
+    };
+  }
 }
