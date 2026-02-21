@@ -13,6 +13,7 @@ import { WechatModule } from './wechat/wechat.module';
 import { PaymentModule } from './payment/payment.module';
 import { StsModule } from './sts/sts.module';
 import { InterviewModule } from './interview/interview.module';
+import { ResumeModule } from './resume/resume.module';
 import { ResponseInterceptor } from './common/interceptors/response.interceptor';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 import { JwtStrategy } from './auth/jwt.strategy';
@@ -59,6 +60,7 @@ import { TraceIdMiddleware } from './common/middleware/trace-id.middleware';
     PaymentModule,
     StsModule,
     InterviewModule,
+    ResumeModule,
   ],
   controllers: [AppController],
   providers: [
