@@ -305,7 +305,43 @@ export class InterviewController {
     return ResponseUtil.success(report, '查询成功');
   }
 
-  
+  /**
+   * 获取简历押题历史记录
+   */
+  @Get('resume/quiz/history')
+  @UseGuards(JwtAuthGuard)
+  async getResumeQuizHistory(@Request() req: any) {
+    const history = await this.interviewService.getResumeQuizHistory(
+      req.user.userId,
+    );
+    return ResponseUtil.success(history, '获取成功');
+  }
+
+  /**
+   * 获取专项面试历史记录
+   */
+  @Get('special/history')
+  @UseGuards(JwtAuthGuard)
+  async getSpecialInterviewHistory(@Request() req: any) {
+    const history = await this.interviewService.getSpecialInterviewHistory(
+      req.user.userId,
+    );
+    return ResponseUtil.success(history, '获取成功');
+  }
+
+  /**
+   * 获取综合面试历史记录
+   */
+  @Get('behavior/history')
+  @UseGuards(JwtAuthGuard)
+  async getBehaviorInterviewHistory(@Request() req: any) {
+    const history = await this.interviewService.getBehaviorInterviewHistory(
+      req.user.userId,
+    );
+    return ResponseUtil.success(history, '获取成功');
+  }
+
+
   /**
    * 使用小麦币兑换套餐
    */

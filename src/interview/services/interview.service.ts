@@ -2558,5 +2558,38 @@ export class InterviewService {
       exchangeCount: EXCHANGE_COUNT,
     };
   }
+
+  /**
+   * 获取简历押题历史记录
+   */
+  async getResumeQuizHistory(userId: string): Promise<any[]> {
+    return await this.resumeQuizResultModel
+      .find({ userId })
+      .select('resultId company position matchScore createdAt')
+      .sort({ createdAt: -1 })
+      .lean();
+  }
+
+  /**
+   * 获取专项面试历史记录
+   */
+  async getSpecialInterviewHistory(userId: string): Promise<any[]> {
+    return await this.aiInterviewResultModel
+      .find({ userId, interviewType: 'special' })
+      .select('resultId company position overallScore status createdAt')
+      .sort({ createdAt: -1 })
+      .lean();
+  }
+
+  /**
+   * 获取综合面试历史记录
+   */
+  async getBehaviorInterviewHistory(userId: string): Promise<any[]> {
+    return await this.aiInterviewResultModel
+      .find({ userId, interviewType: 'behavior' })
+      .select('resultId company position overallScore status createdAt')
+      .sort({ createdAt: -1 })
+      .lean();
+  }
 }
 
