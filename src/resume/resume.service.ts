@@ -16,6 +16,8 @@ export class ResumeService {
   }
 
   async uploadResume(userId: string, dto: UploadResumeDto) {
+    console.log('uploadResume - userId:', userId);
+    console.log('uploadResume - dto:', JSON.stringify(dto));
     const resume = new this.resumeModel({
       userId,
       resumeName: dto.resumeName,
