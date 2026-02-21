@@ -29,7 +29,10 @@ async function bootstrap() {
   );
 
   // 启用 CORS
-  app.enableCors();
+  app.enableCors({
+    origin: 'http://localhost:8001',
+    credentials: true,
+  });
 
   const port = process.env.PORT || 3000;
   await app.listen(port);

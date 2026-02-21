@@ -54,20 +54,27 @@ export class UserController {
     return ResponseUtil.success(user, '更新成功');
   }
 
-  // /**
-  //  * 获取用户消费记录（包括简历押题、专项面试、综合面试）
-  //  */
-  @Get('consumption-records')
-  @UseGuards(JwtAuthGuard)
-  @ApiOperation({
-    summary: '获取用户消费记录',
-    description:
-      '获取用户所有的功能消费记录，包括简历押题、专项面试、综合面试等',
-  })
+  @Post('update')
+  async updateUser(
+    @Request() req: any,
+    @Body() updateUserDto: UpdateUserDto,
+  ) {
+    const { userId } = req.user;
+    const user = await this.userService.updateUser(userId, updateUserDto);
+    return ResponseUtil.success(user, '更新成功');
+  }
 
-  /*
-  * 获取用户消费记录（包括简历押题、专项面试、综合面试）
-  */
+  @Get('transactions')
+  @UseGuards(JwtAuthGuard)
+  async getTransactions(@Request() req: any) {
+    const { userId } = req.user;
+    const transactions = await this.userService.getUserTransactions(userId);
+    return ResponseUtil.success(transactions, '获取成功');
+  }
+
+  /**
+   * 获取用户消费记录（包括简历押题、专项面试、综合面试）
+   */
   @Get('consumption-records')
   @UseGuards(JwtAuthGuard)
   @ApiOperation({

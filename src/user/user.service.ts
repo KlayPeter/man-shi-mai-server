@@ -14,6 +14,10 @@ import {
   UserConsumptionDocument,
 } from './schemas/consumption-record.schema';
 import { UpdateUserDto } from './dto/update-user.dto';
+import {
+  PaymentRecord,
+  PaymentRecordDocument,
+} from '../payment/payment-record.schema';
 
 @Injectable()
 export class UserService {
@@ -24,6 +28,8 @@ export class UserService {
     private consumptionRecordModel: Model<ConsumptionRecordDocument>,
     @InjectModel(UserConsumption.name)
     private consumptionModel: Model<UserConsumptionDocument>,
+    @InjectModel(PaymentRecord.name)
+    private paymentRecordModel: Model<PaymentRecordDocument>,
     private jwtService: JwtService,
   ) { }
   
@@ -193,6 +199,18 @@ export class UserService {
       records,
       stats,
     };
+  }
+
+  /**
+   * 获取用户支付记录
+   */
+  async getUserTransactions(userId: string) {
+    const transactions = await this.paymentRecordModel
+      .find({ userId })
+      .sort({ createdAt: -1 })
+      .lean();
+
+    return transactions;
   }
 
 }
