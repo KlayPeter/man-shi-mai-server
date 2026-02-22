@@ -6,7 +6,7 @@ import {
   ForbiddenException,
   Logger,
 } from '@nestjs/common';
-import { v4 as uuid } from 'uuid';
+import { v4 as uuidv4 } from 'uuid';
 import { PaymentChannel } from './payment.types';
 import {
   PaymentRecord,
@@ -153,8 +153,8 @@ export class PaymentService {
       // 订单ID
       orderId:
         dto.channel === PaymentChannel.ALIPAY
-          ? uuid()
-          : uuid().replace(/-/g, ''),
+          ? uuidv4()
+          : uuidv4().replace(/-/g, ''),
       // 订单金额
       amount: dto.amount,
       // 套餐ID

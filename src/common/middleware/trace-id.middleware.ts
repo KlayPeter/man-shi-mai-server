@@ -1,6 +1,6 @@
 import { Injectable, NestMiddleware, Logger } from '@nestjs/common';
 import { Request, Response, NextFunction } from 'express';
-import { v4 as uuid } from 'uuid';
+import { v4 as uuidv4 } from 'uuid';
 import { AsyncLocalStorage } from 'async_hooks';
 
 // 使用 AsyncLocalStorage 来存储 TraceID
@@ -13,7 +13,7 @@ export class TraceIdMiddleware implements NestMiddleware {
 
   use(req: Request, res: Response, next: NextFunction) {
     // 从请求头中获取 TraceID，如果没有就生成一个
-    const traceId = (req.headers['x-trace-id'] as string) || uuid();
+    const traceId = (req.headers['x-trace-id'] as string) || uuidv4();
 
     // 将 TraceID 存储在 AsyncLocalStorage 中
     // 这样 Service 中就能访问到它

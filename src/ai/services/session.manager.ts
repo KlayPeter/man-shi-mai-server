@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Message, SessionData } from '../interfaces/message.interface';
-import { v4 as generateUUID } from 'uuid';
+import { v4 as uuidv4 } from 'uuid';
 
 /**
  * 会话管理服务
@@ -35,7 +35,7 @@ export class SessionManager {
     position: string,
     systemMessage: string,
   ): string {
-    const sessionId = generateUUID();
+    const sessionId = uuidv4();
 
     const sessionData: SessionData = {
       sessionId,
