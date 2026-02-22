@@ -83,7 +83,7 @@
   },
   "pnpm": {
     "overrides": {
-      "p-retry": "5.1.2"
+      "p-retry": "4.6.2"
     }
   },
   "jest": {
