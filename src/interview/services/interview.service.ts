@@ -47,6 +47,14 @@ import {
 } from '../../user/schemas/user-transaction.schema';
 
 import { traceIdStorage } from '../../common/middleware/trace-id.middleware';
+const AipSpeech = require('baidu-aip').speech;
+const ffmpeg = require('fluent-ffmpeg');
+const ffmpegPath = require('@ffmpeg-installer/ffmpeg').path;
+const fs = require('fs');
+const path = require('path');
+const os = require('os');
+
+ffmpeg.setFfmpegPath(ffmpegPath);
 
 /**
  * 进度事件
@@ -2229,7 +2237,19 @@ export class InterviewService {
       }
 
       // 报告已生成，转换为统一格式返回
-      return aiInterviewResult;
+      // 将 improvements 转换为 learningPriorities 格式，保持前端数据结构统一
+      const learningPriorities = (aiInterviewResult.improvements || []).map(
+        (item) => ({
+          topic: item.category,
+          reason: item.suggestion,
+          priority: item.priority || 'medium',
+        }),
+      );
+
+      return {
+        ...aiInterviewResult.toObject(),
+        learningPriorities,
+      };
     }
 
     throw new NotFoundException('未找到该分析报告');
@@ -2677,6 +2697,70 @@ export class InterviewService {
       .select('resultId company position interviewType status createdAt updatedAt')
       .sort({ updatedAt: -1 })
       .lean();
+  }
+
+  /**
+   * 语音转文字
+   */
+  async speechToText(audioBase64: string): Promise<string> {
+    const APP_ID = this.configService.get('BAIDU_APP_ID');
+    const API_KEY = this.configService.get('BAIDU_API_KEY');
+    const SECRET_KEY = this.configService.get('BAIDU_SECRET_KEY');
+
+    if (!APP_ID || !API_KEY || !SECRET_KEY) {
+      throw new BadRequestException('百度语音识别配置缺失');
+    }
+
+    const client = new AipSpeech(APP_ID, API_KEY, SECRET_KEY);
+    const audioBuffer = Buffer.from(audioBase64, 'base64');
+
+    const tempDir = os.tmpdir();
+    const webmPath = path.join(tempDir, `${uuidv4()}.webm`);
+    const wavPath = path.join(tempDir, `${uuidv4()}.wav`);
+
+    try {
+      fs.writeFileSync(webmPath, audioBuffer);
+
+      await new Promise((resolve, reject) => {
+        ffmpeg(webmPath)
+          .toFormat('wav')
+          .audioFrequency(16000)
+          .audioChannels(1)
+          .on('end', resolve)
+          .on('error', reject)
+          .save(wavPath);
+      });
+
+      const wavBuffer = fs.readFileSync(wavPath);
+      const result = await client.recognize(wavBuffer, 'wav', 16000, {
+        dev_pid: 1537,
+      });
+
+      if (result.err_no === 0) {
+        return result.result[0];
+      } else {
+        throw new BadRequestException(`语音识别失败: ${result.err_msg || '未知错误'}`);
+      }
+    } catch (error) {
+      this.logger.error('语音识别错误:', error);
+      throw new BadRequestException(`语音识别失败: ${error.message || '未知错误'}`);
+    } finally {
+      if (fs.existsSync(webmPath)) fs.unlinkSync(webmPath);
+      if (fs.existsSync(wavPath)) fs.unlinkSync(wavPath);
+    }
+  }
+
+  /**
+   * 获取当前正在进行模拟面试的人数
+   * 统计最近10分钟内有活动的面试记录数量
+   */
+  async getActiveMockInterviewCount(): Promise<number> {
+    const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000);
+    const count = await this.aiInterviewResultModel.countDocuments({
+      updatedAt: { $gte: tenMinutesAgo },
+      status: { $ne: 'completed' },
+    });
+    return count;
   }
 }
 

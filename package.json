@@ -21,6 +21,7 @@
     "test:api": "node test-all-apis.js"
   },
   "dependencies": {
+    "@ffmpeg-installer/ffmpeg": "^1.1.0",
     "@langchain/community": "1.0.5",
     "@langchain/core": "1.1.0",
     "@langchain/deepseek": "1.0.2",
@@ -35,10 +36,12 @@
     "@nestjs/swagger": "^11.2.6",
     "alipay-sdk": "^4.14.0",
     "axios": "^1.13.2",
+    "baidu-aip": "^2.3.3",
     "bcryptjs": "3.0.3",
     "class-transformer": "0.5.1",
     "class-validator": "^0.14.2",
     "dotenv": "^17.2.4",
+    "fluent-ffmpeg": "^2.1.3",
     "joi": "18.0.2",
     "langchain": "1.1.1",
     "mammoth": "1.11.0",
