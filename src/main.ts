@@ -16,7 +16,13 @@ async function bootstrap() {
     logger: WinstonModule.createLogger({
       instance: winstonLogger,
     }),
+    bodyParser: true,
+    rawBody: true,
   });
+
+  // 增加请求体大小限制
+  app.use(require('express').json({ limit: '50mb' }));
+  app.use(require('express').urlencoded({ limit: '50mb', extended: true }));
 
   // 让所有的 NestJS 组件都用 Winston logger
   app.useLogger(app.get(WINSTON_MODULE_NEST_PROVIDER));
@@ -31,14 +37,14 @@ async function bootstrap() {
 
   // 启用 CORS
   app.enableCors({
-    origin: 'http://localhost:8001',
+    origin: ['http://localhost:8000', 'http://101.36.122.110:8000'],
     credentials: true,
   });
 
   // 配置 Swagger
   const config = new DocumentBuilder()
-    .setTitle('面试买 API')
-    .setDescription('面试买系统接口文档')
+    .setTitle('面试麦 API')
+    .setDescription('面试麦系统接口文档')
     .setVersion('1.0')
     .addBearerAuth()
     .build();

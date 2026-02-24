@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pnpm install)",
+      "Bash(pnpm run build)",
+      "WebFetch(domain:101.36.122.110)",
+      "Bash(curl:*)"
+    ]
+  }
+}

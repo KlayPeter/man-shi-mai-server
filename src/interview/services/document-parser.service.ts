@@ -152,7 +152,7 @@ export class DocumentParserService {
       }
 
       if (error.response?.status === 403) {
-        throw new BadRequestException('无权访问该文件，请检查文件权限');
+        throw new BadRequestException('无法访问简历文件（OSS权限问题）。建议：直接粘贴简历文本内容，而不是上传文件');
       }
 
       throw new BadRequestException(

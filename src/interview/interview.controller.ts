@@ -441,6 +441,27 @@ export class InterviewController {
 
     return ResponseUtil.success(result, result.message);
   }
+
+  /**
+   * 语音转文字
+   */
+  @Post('speech-to-text')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: '语音转文字' })
+  async speechToText(@Body() body: { audio: string }, @Request() req: any) {
+    const text = await this.interviewService.speechToText(body.audio);
+    return ResponseUtil.success({ text }, '识别成功');
+  }
+
+  /**
+   * 获取当前正在进行模拟面试的人数（公开接口）
+   */
+  @Get('admin/mock-interview-count')
+  @ApiOperation({ summary: '获取实时模拟面试人数' })
+  async getMockInterviewCount() {
+    const count = await this.interviewService.getActiveMockInterviewCount();
+    return { count };
+  }
 }
 
 
