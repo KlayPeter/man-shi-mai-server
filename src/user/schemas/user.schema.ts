@@ -76,6 +76,10 @@ export class User {
   @Prop({ default: 0 })
   behaviorRemainingCount: number; // 综合面试剩余次数
 
+  // 模拟支付相关
+  @Prop({ default: false })
+  hasUsedVirtualPayment: boolean; // 是否已使用过模拟支付
+
   // 用户行为追踪
   @Prop()
   lastLoginTime?: Date; // 最近登录时间

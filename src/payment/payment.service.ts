@@ -729,6 +729,16 @@ export class PaymentService {
   }
 
   async mockPaymentSuccess(orderId: string, user: { userId: string }) {
+    // 检查用户是否已使用过模拟支付
+    const currentUser = await this.userModel.findById(user.userId).exec();
+    if (!currentUser) {
+      throw new BadRequestException('用户不存在');
+    }
+
+    if (currentUser.hasUsedVirtualPayment) {
+      throw new ForbiddenException('您已使用过模拟支付功能，每个用户仅限使用一次');
+    }
+
     const paymentRecord = await this.paymentRecordModel
       .findOne({ orderId })
       .exec();
@@ -762,6 +772,13 @@ export class PaymentService {
     };
 
     await this.finalizePaymentSuccess(context);
+
+    // 标记用户已使用过模拟支付
+    await this.userModel
+      .findByIdAndUpdate(user.userId, {
+        $set: { hasUsedVirtualPayment: true },
+      })
+      .exec();
 
     const updatedUser = await this.userModel.findById(user.userId).lean().exec();
 
